@@ -5,7 +5,6 @@ import { AdyenBillingService } from "../services/adyenBillingService";
 import { Guid } from "js-guid";
 
 export const register = (app: express.Application) => {
-
   /** Retrieve the available payment methods from Adyen for the merchant. */
   app.post("/api/getPaymentMethods", async (req, res) => {
     try {
@@ -29,7 +28,7 @@ export const register = (app: express.Application) => {
 
       // Use the Adyen checkout API to create a 0-amount payment, and save the consumer's card details
       const response = await checkout.payments({
-        amount: { currency: "USD", value: 0 },
+        amount: { currency: "USD", value: req.body.amount },
         storePaymentMethod: true,
         shopperInteraction: "Ecommerce",
         recurringProcessingModel: "CardOnFile",
@@ -37,7 +36,7 @@ export const register = (app: express.Application) => {
         merchantAccount: process.env.ADYEN_MERCHANT_ACCOUNT,
         returnUrl: req.body.returnUrl,
         paymentMethod: req.body.paymentMethod,
-        shopperReference: req.body.userId
+        shopperReference: req.body.userId,
       });
 
       const apimUserId = req.body.userId;
@@ -46,7 +45,12 @@ export const register = (app: express.Application) => {
       const apimService = new ApimService();
 
       // Create a new APIM subscription for the user
-      await apimService.createSubscription(Guid.newGuid().toString(), apimUserId, apimProductId, apimSubscriptionName);
+      await apimService.createSubscription(
+        Guid.newGuid().toString(),
+        apimUserId,
+        apimProductId,
+        apimSubscriptionName
+      );
 
       res.json(response);
     } catch (err) {
