@@ -10,7 +10,7 @@ import { StripeBillingService } from "./services/stripeBillingService";
 dotenv.config();
 
 const app = express();
-const paymentProvider = process.env.PAYMENT_PROVIDER
+const paymentProvider = process.env.PAYMENT_PROVIDER;
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -21,7 +21,7 @@ app.use(
     res: express.Response,
     next: express.NextFunction
   ): void => {
-    if (req.originalUrl.startsWith('/webhook/')) {
+    if (req.originalUrl.startsWith("/webhook/")) {
       next();
     } else {
       express.json()(req, res, next);
@@ -31,9 +31,9 @@ app.use(
 
 const port = process.env.SERVER_PORT || 8080;
 
-app.use(expressLayouts)
+app.use(expressLayouts);
 app.set("views", path.join(__dirname, "views"));
-app.set('layout', './layout');
+app.set("layout", "./layout");
 app.set("view engine", "ejs");
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -43,31 +43,38 @@ routes.register(app);
 if (paymentProvider === "Stripe") {
   // Run 'report usage' function every day at midnight
   const job = new CronJob(
-    '0 0 * * *',
+    "0 0 * * *",
     async () => {
       await StripeBillingService.reportUsageToStripe();
     },
     null,
     true,
-    'Europe/London'
+    "Europe/London"
   );
 }
 
 if (paymentProvider === "Adyen") {
   // Run monthly billing for all subscriptions
   const job = new CronJob(
-    '0 0 1 * *',
+    "*/10 * * * *",
     async () => {
+      // tslint:disable-next-line:no-console
+      console.log("Running monthly billing");
       const now = new Date(Date.now());
-      const invoices : Invoice[] = await AdyenBillingService.calculateInvoices(now.getMonth(), now.getFullYear());
+      const invoices: Invoice[] = await AdyenBillingService.calculateInvoices(
+        now.getMonth(),
+        now.getFullYear()
+      );
 
-      await Promise.all(invoices.map(async invoice => {
-        await AdyenBillingService.takePaymentFromUser(invoice);
-      }))
+      await Promise.all(
+        invoices.map(async (invoice) => {
+          await AdyenBillingService.takePaymentFromUser(invoice);
+        })
+      );
     },
     null,
     true,
-    'Europe/London'
+    "Europe/London"
   );
 }
 
